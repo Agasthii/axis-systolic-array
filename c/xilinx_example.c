@@ -26,13 +26,13 @@ int main() {
   Memory_st *p_mem = fb_get_mem_p();
   void *p_cfg = (fb_reg_t *)CONFIG_BASEADDR;
 
-  xil_printf("Hello! Config:%p, Mem:%p\n", p_cfg, p_mem);
+  xil_printf("Hello! Config:%p, Mem:%p, K=%d, R=%d\n", p_cfg, p_mem, K, R);
 
   randomize_inputs(p_mem, 500);
   printf("Starting %d runs...\n", NUM_EXP);
   XTime_GetTime(&time_start);
 
-  for (int i=0; i<NUM_EXP; i++) {
+  for (int i = 0; i < NUM_EXP; i++) {
     flush_cache(p_mem->k, sizeof(p_mem->k) + sizeof(p_mem->x) + sizeof(p_mem->a));
     run(p_mem);
     flush_cache(p_mem->y, sizeof(p_mem->y));

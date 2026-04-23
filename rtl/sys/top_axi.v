@@ -150,82 +150,61 @@ module top #(
 
 // Stream Side
 
-localparam K_BUS_W = C*WK;
+localparam K_BUS_W = R*WK;
 wire                       s_k_tready;
 wire                       s_k_tvalid;
-wire                       s_k_tlast ;
-wire [K_BUS_W        -1:0] s_k_tdata ;
-wire [AXIS_USER_WIDTH-1:0] s_k_tuser ;
+wire                       s_k_tlast;
+wire [K_BUS_W        -1:0] s_k_tdata;
+wire [AXIS_USER_WIDTH-1:0] s_k_tuser;
 
 localparam X_BUS_W = R*WX;
 wire                       s_x_tready;
 wire                       s_x_tvalid;
-wire                       s_x_tlast ;
-wire [X_BUS_W        -1:0] s_x_tdata ;
-wire [AXIS_USER_WIDTH-1:0] s_x_tuser ;
-
-localparam OUT_BUS_W = R*WY;
-wire                       m_ready;
-wire                       m_valid;
-wire                       m_last ;
-wire [OUT_BUS_W      -1:0] m_data ;
-
-// Synchronize k & x streams
-wire s_valid, s_ready, s_last;
-assign s_valid    = s_k_tvalid & s_x_tvalid;
-assign s_k_tready = s_ready    & s_x_tvalid;
-assign s_x_tready = s_ready    & s_k_tvalid;
-assign s_last     = s_k_tlast  & s_x_tlast;
-
-axis_sa #(
-    .R (R ), 
-    .C (C ), 
-    .WX(WX), 
-    .WK(WK), 
-    .WY(WY), 
-    .LM(LM), 
-    .LA(LA)
-  ) SA (
-    .clk(clk), 
-    .rstn(rstn),
-    .s_valid (s_valid), 
-    .s_ready (s_ready), 
-    .sx_data (s_x_tdata),
-    .sk_data (s_k_tdata),
-    .s_last  (s_last), 
-    .m_ready (m_ready),
-    .m_valid (m_valid), 
-    .m_last  (m_last ), 
-    .m_data  (m_data )
-  );
+wire                       s_x_tlast;
+wire [X_BUS_W        -1:0] s_x_tdata;
+wire [AXIS_USER_WIDTH-1:0] s_x_tuser;
 
 localparam A_BUS_W = R*WA;
 wire                       s_a_tready;
 wire                       s_a_tvalid;
-wire                       s_a_tlast ;
-wire [A_BUS_W        -1:0] s_a_tdata ;
-wire [AXIS_USER_WIDTH-1:0] s_a_tuser ;
+wire                       s_a_tlast;
+wire [A_BUS_W        -1:0] s_a_tdata;
+wire [AXIS_USER_WIDTH-1:0] s_a_tuser;
 
 localparam Y_BUS_W = R*WY;
 wire                       m_y_tready;
 wire                       m_y_tvalid;
-wire                       m_y_tlast ;
-wire [Y_BUS_W     -1:0]    m_y_tdata ;
+wire                       m_y_tlast;
+wire [Y_BUS_W        -1:0] m_y_tdata;
 
-// Synchronize (m, s_a) => (m_y) streams
-assign m_y_tvalid = s_a_tvalid & m_valid;
-assign m_y_tlast  = s_last     & m_last;
-assign m_ready    = m_y_tready & s_a_tvalid;
-assign s_a_tready = m_y_tready & m_valid;
+wire s_valid, s_ready, s_last;
 
-wire [Y_BUS_W-1:0] a_data_temp;
-generate
-    genvar r;
-    for (r=0; r<R; r=r+1) begin : ADD
-        assign a_data_temp[(r+1)*WY-1:r*WY] = s_a_tdata[(r+1)*WA-1:r*WA];
-        assign m_y_tdata  [(r+1)*WY-1:r*WY] = $signed(m_data[(r+1)*WY-1:r*WY]) + $signed(a_data_temp[(r+1)*WY-1:r*WY]);
-    end
-endgenerate
+// Synchronize k, x, and a streams
+assign s_valid    = s_k_tvalid & s_x_tvalid & s_a_tvalid;
+assign s_last     = s_k_tlast  & s_x_tlast  & s_a_tlast;
+
+assign s_k_tready = s_ready & s_x_tvalid & s_a_tvalid;
+assign s_x_tready = s_ready & s_k_tvalid & s_a_tvalid;
+assign s_a_tready = s_ready & s_k_tvalid & s_x_tvalid;
+
+axis_vector_mac #(
+    .R (R ),
+    .WK(WK),
+    .WX(WX),
+    .WA(WA),
+    .WY(WY)
+) MAC (
+    .s_valid(s_valid),
+    .s_ready(s_ready),
+    .s_last (s_last),
+    .sk_data(s_k_tdata),
+    .sx_data(s_x_tdata),
+    .sa_data(s_a_tdata),
+    .m_valid(m_y_tvalid),
+    .m_ready(m_y_tready),
+    .m_last (m_y_tlast),
+    .m_data (m_y_tdata)
+);
 
 // AXI side
 
@@ -318,6 +297,7 @@ alex_axis_adapter_any #(
 alex_axis_adapter_any #(
   .S_DATA_WIDTH  (AXI_WIDTH),
   .S_KEEP_ENABLE (1),
+  .S_KEEP_WIDTH  (AXI_WIDTH/8),
   .M_DATA_WIDTH  (A_BUS_W),
   .M_KEEP_ENABLE (1),
   .USER_ENABLE   (1),
@@ -342,7 +322,9 @@ alex_axis_adapter_any #(
   .m_axis_tid    (),
   .m_axis_tdest  ()
 );
+
 localparam Y_KEEP_W = Y_BUS_W/8;
+
 alex_axis_adapter_any #(
   .S_DATA_WIDTH  (Y_BUS_W),
   .S_KEEP_ENABLE (1),
@@ -369,7 +351,6 @@ alex_axis_adapter_any #(
   .m_axis_tid    (),
   .m_axis_tdest  ()
 );
-
 
 
 // Wires connecting AXIL2RAM to CONTROLLER

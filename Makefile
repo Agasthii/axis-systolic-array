@@ -15,7 +15,7 @@ TARGET = sim
 TRACE = 0
 OPTIMIZE = 0
 CLEAN_REGRESS = 0
-COPY_WORKDIR = 0
+COPY_WORKDIR =
 IP ?= axis_sa
 
 SYS = axi
@@ -104,7 +104,7 @@ wave:
 	gtkwave $(WORK_DIR)/top_tb.vcd &
 
 config: $(WORK_DIR)/config.svh $(WORK_DIR)/config.h $(WORK_DIR)/config.tcl $(WORK_DIR)/config.scala
-	@if [ -n "$(COPY_WORKDIR)" ]; then rm -rf run/work && cp -r $(WORK_DIR) run/work; fi;
+	@if [ "$(COPY_WORKDIR)" = "1" ] && [ "$(WORK_DIR)" != "run/work" ]; then rm -rf run/work && cp -r $(WORK_DIR) run/work; fi;
 
 #----------------- Vivado XSIM ------------------
 
@@ -181,25 +181,8 @@ qverify:
 boom_test:
 	$(MAKE) -C soc/chipyard test
 
-#----------------- Ibex System ------------------
-
-ibex_test:
-	make ibuild irun iprint TARGET=ibex 
-
-iprint: 
-	$(MAKE) -C ibex-soc print
-irun: 
-	$(MAKE) -C ibex-soc run
-irun-clean:
-	$(MAKE) -C ibex-soc run-clean
-ibuild: $(WORK_DIR)/config.svh
-	$(MAKE) -C ibex-soc build
-iwave:
-	$(MAKE) -C ibex-soc wave
-
 clean:
 	rm -rf $(WORK_DIR)*
-	$(MAKE) -C ibex-soc clean
 	rm -rf build *.vstf *.log *.ses .qverify .visualizer
 
 #----------------- Regression ------------------
@@ -257,4 +240,4 @@ kill:
 	- docker kill $(CONTAINER) || true
 	- docker rm   $(CONTAINER) || true
 
-.PHONY: sim vlog elab run clean vivado regress veri xrun ibuild irun iprint iwave irun-clean veri_axis veri_smoke qverify regress image start enter kill wave clean
+.PHONY: sim vlog elab run clean vivado regress veri xrun veri_axis veri_smoke qverify regress image start enter kill wave clean
