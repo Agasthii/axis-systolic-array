@@ -154,7 +154,7 @@ veri: work_verilator $(DATA_DIR)
 
 veri_axis: $(WORK_DIR)/config.svh rtl/vector_mac.sv rtl/axis_vector_mac.sv tb/axis_vector_mac_tb.sv tb/axis_vip/tb/axis_sink.sv tb/axis_vip/tb/axis_source.sv
 	mkdir -p $(WORK_DIR)
-	verilator --binary -j 0 -O3 --trace --top axis_vector_mac_tb -Mdir $(WORK_DIR)/ -I$(WORK_DIR) $^ --Wno-BLKANDNBLK --Wno-INITIALDLY
+	verilator --binary -j 0 -O3 --trace --top axis_vector_mac_tb -Mdir $(WORK_DIR)/ $^ --Wno-BLKANDNBLK --Wno-INITIALDLY
 	cd $(WORK_DIR) && ./Vaxis_vector_mac_tb
 
 veri_smoke: rtl/sa/axis_sa.sv rtl/sa/mac.sv rtl/sa/n_delay.sv rtl/sa/tri_buffer.sv tb/smoke_tb.sv

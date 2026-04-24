@@ -12,8 +12,10 @@ module vector_mac #(
   genvar r;
   generate
     for (r = 0; r < R; r = r + 1)
-      always @(posedge clk)
-        if (!rstn)    m_data <= '0;
-        else if (en)  m_data <= $signed(sk_data[r]) * $signed(sx_data[r]) + $signed(sa_data[r]);
+      always_ff @(posedge clk)
+        if (!rstn)    m_data[r] <= '0;
+        else if (en)  m_data[r] <= $signed(sk_data[r]) 
+                                 * $signed(sx_data[r]) 
+                                 + $signed(sa_data[r]);
   endgenerate
 endmodule
