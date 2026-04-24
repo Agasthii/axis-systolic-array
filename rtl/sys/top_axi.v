@@ -194,6 +194,8 @@ axis_vector_mac #(
     .WA(WA),
     .WY(WY)
 ) MAC (
+    .clk    (clk),
+    .rstn   (rstn),
     .s_valid(s_valid),
     .s_ready(s_ready),
     .s_last (s_last),

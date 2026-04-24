@@ -7,6 +7,9 @@ module axis_vector_mac #(
   parameter WA = 32,
   parameter WY = 32
 )(
+  input  wire                  clk,
+  input  wire                  rstn,
+
   input  wire                  s_valid,
   output wire                  s_ready,
   input  wire                  s_last,
@@ -21,28 +24,40 @@ module axis_vector_mac #(
   output wire [R*WY-1:0]       m_data
 );
 
-  localparam MUL_W = WK + WX;
-  localparam ACC_W = ((MUL_W > WA) ? MUL_W : WA) + 1;
+  reg m_valid_reg;
+  reg m_last_reg;
 
-  assign s_ready = m_ready;
-  assign m_valid = s_valid;
-  assign m_last  = s_last;
+  wire stall = m_valid_reg & !m_ready;
+  wire en    = !stall;
 
-  genvar r;
-  generate
-    for (r = 0; r < R; r = r + 1) begin : GEN_LANE
-      wire signed [WK-1:0] k_lane;
-      wire signed [WX-1:0] x_lane;
-      wire signed [WA-1:0] a_lane;
-      wire signed [ACC_W-1:0] y_lane;
+  assign s_ready = en;
+  assign m_valid = m_valid_reg;
+  assign m_last  = m_last_reg;
 
-      assign k_lane = sk_data[(r+1)*WK-1 -: WK];
-      assign x_lane = sx_data[(r+1)*WX-1 -: WX];
-      assign a_lane = sa_data[(r+1)*WA-1 -: WA];
-
-      assign y_lane = $signed(k_lane) * $signed(x_lane) + $signed(a_lane);
-      assign m_data[(r+1)*WY-1 -: WY] = y_lane[WY-1:0];
+  always @(posedge clk) begin
+    if (!rstn) begin
+      m_valid_reg <= 1'b0;
+      m_last_reg  <= 1'b0;
+    end else if (en) begin
+      m_valid_reg <= s_valid;
+      m_last_reg  <= s_valid & s_last;
     end
-  endgenerate
+  end
+
+  vector_mac #(
+    .R (R ),
+    .WK(WK),
+    .WX(WX),
+    .WA(WA),
+    .WY(WY)
+  ) VECTOR_MAC (
+    .clk    (clk),
+    .rstn   (rstn),
+    .en     (en),
+    .sk_data(sk_data),
+    .sx_data(sx_data),
+    .sa_data(sa_data),
+    .m_data (m_data)
+  );
 
 endmodule

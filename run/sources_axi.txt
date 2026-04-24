@@ -1,4 +1,5 @@
 config.svh
+../../rtl/vector_mac.sv
 ../../rtl/axis_vector_mac.sv
 ../../rtl/sys/top_axi.v
 ../../rtl/sys/dma_controller.sv
